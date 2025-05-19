@@ -1,0 +1,20 @@
+--Damage Service
+local DamageService = {}
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+--Events
+DamageService.DamageEvent = Instance.new("BindableEvent")
+DamageService.DamageEvent.Name = "GlobalDamageEvent"
+DamageService.DamageEvent.Parent = ReplicatedStorage
+
+--Func
+function DamageService.ApplyDamage(attacker, victim, damageAmount, attackType)
+	
+	if victim and victim:FindFirstChild("Humanoid") then
+		victim.Humanoid:TakeDamage(damageAmount)
+	end
+
+	DamageService.DamageEvent:Fire(attacker, victim, damageAmount, attackType)
+end
+
+return DamageService
