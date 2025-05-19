@@ -1,0 +1,101 @@
+-- clear notifs
+local function ClearNotifications(plr)
+	local notif = plr.PlayerGui.Notifications:FindFirstChildWhichIsA("TextLabel")
+	if notif then notif:Destroy() end
+end
+
+--make notifs
+local function ShowNotification(plr, message)
+	ClearNotifications(plr)
+	local info = game.ReplicatedStorage.Placeholder.Info:Clone()
+	info.Text = message
+	info.Parent = plr.PlayerGui.Notifications
+	task.delay(2, function()
+		if info then info:Destroy() end
+	end)
+end
+
+--shipping logic
+script.Parent.Triggered:Connect(function(plr)
+	local data = plr:FindFirstChild("Data")
+	if not data then return end
+
+	local cooldown = data:FindFirstChild("ShippingCD")
+	if cooldown and cooldown.Value > 0 then
+		plr.PlayerGui.MainGUI.Bruh:Play()
+		ShowNotification(plr, "You just recently exported an item! Wait " .. cooldown.Value .. " more seconds.")
+		return
+	end
+
+	local ticket = plr.Character and plr.Character:FindFirstChild("Ticket")
+	if not ticket then return end
+
+	if workspace:FindFirstChild(plr.Name .. "Boat") then
+		plr.PlayerGui.MainGUI.Bruh:Play()
+		return
+	end
+
+	local itemName = ticket.Item.Value
+	local itemData = data:FindFirstChild(itemName) or data:FindFirstChild("Packed" .. itemName)
+	if not itemData then return end
+
+	local amount = ticket.Amount.Value
+	if itemData.Value < amount then
+		plr.PlayerGui.MainGUI.Bruh:Play()
+		ticket:Destroy()
+		return
+	end
+
+	local itemInfo = game.ReplicatedStorage.Informations.Guns:FindFirstChild(itemName)
+	if not itemInfo then return end
+
+	--take item
+	itemData.Value -= amount
+
+	--spawn boat
+	local boat = game.ReplicatedStorage.Boats.ShippingBoat:Clone()
+	local scriptClone = game.ReplicatedStorage.Boats.BoatScript:Clone()
+	scriptClone.Parent = boat
+	boat.Name = plr.Name .. "Boat"
+
+	local folder = Instance.new("Folder")
+	folder.Name = plr.Name
+	folder.Parent = boat
+
+	boat.Parent = workspace
+	scriptClone.Enabled = true
+
+	--cooldown
+	cooldown.Value = 180
+
+	--boat removal
+	local conn
+	conn = workspace.ChildRemoved:Connect(function(child)
+		if not (child:IsA("UnionOperation") and child:FindFirstChild(plr.Name)) then return end
+		if script:FindFirstChild(plr.Name) then return end
+
+		local mark = Instance.new("Folder", script)
+		mark.Name = plr.Name
+
+		local realAmount = itemInfo.Cost.Value * amount
+		data.Dolero.Value += realAmount
+
+		plr.PlayerGui.MainGUI.Cash:Play()
+		ShowNotification(plr, "Successfully exported item! +$" .. realAmount)
+
+		--risks
+		local pRespect = data:FindFirstChild("PoliceRespect")
+		if pRespect and pRespect.Value < 98 then
+			local policeKnows = math.random(1, 11)
+			if policeKnows < (10 - (pRespect.Value / 10) + 4.5) then
+				pRespect.Value -= 7
+				data.InJail.Value = 1
+			end
+		end
+
+		mark:Destroy()
+		conn:Disconnect()
+	end)
+
+	ticket:Destroy()
+end)
