@@ -1,0 +1,51 @@
+local currentCam = workspace.CurrentCamera
+local plr = game.Players.LocalPlayer
+
+script.Parent.MouseButton1Click:Connect(function()
+    local cameraSubject = currentCam.CameraSubject
+    local postOffices = workspace
+    local postOfficeName = script.Parent.Parent.Post.Value
+    local postOfficeInfo = game.ReplicatedStorage.Informations.PostOffices:FindFirstChild(postOfficeName)
+    local officeText = script.Parent.Parent.Office.Text
+    local itemName = script.Parent.Parent.Item.Value
+    local amount = script.Parent.Parent.Amount.Value
+
+    -- check office text
+    if officeText == "?" then
+        plr.PlayerGui.MainGUI.Bruh:Play()
+        game.ReplicatedStorage.Event.Info:FireServer("Level "..postOfficeInfo.Level.Value.." Required")
+        return
+    end
+
+    if officeText == "Post Office" then
+        plr.PlayerGui.MainGUI.Bruh:Play()
+        return
+    end
+
+    -- check item
+    local packedItem = plr.Data:FindFirstChild("Packed"..itemName)
+    if not packedItem then
+        plr.PlayerGui.MainGUI.Bruh:Play()
+        return
+    end
+
+    -- fee & item cost
+    local fee = postOfficeInfo.Fee
+    local itemCost = game.ReplicatedStorage.Informations.Guns:FindFirstChild(itemName).Cost
+
+    -- calculate income
+    local baseAmount = itemCost.Value * amount
+    local feeAmount = baseAmount * (fee.Value / 100)
+    local skillBonus = 50 * plr.Data.DeliverySkill.Value
+    local moneyReceived = baseAmount - feeAmount + skillBonus
+
+    -- fire
+    script.Parent.RemoteEvent:FireServer(packedItem, amount, moneyReceived)
+
+    -- notify
+    game.ReplicatedStorage.Event.Info:FireServer("+$"..moneyReceived)
+    plr.PlayerGui.MainGUI.Cash:Play()
+
+    -- reset cam
+    currentCam.CameraSubject = plr.Character.Humanoid
+end)
